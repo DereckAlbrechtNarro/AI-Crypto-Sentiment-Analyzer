@@ -5,9 +5,9 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 
-const CryptoService = require('./services/cryptoService');
-const NewsService = require('./services/newsService');
 const cryptoService = require('./services/cryptoService');
+const NewsService = require('./services/newsService');
+const sentimentService = require('./services/sentimentService');
 
 const app = express();
 const server = http.createServer(app);
@@ -57,7 +57,7 @@ io.on('connection', (socket) => {
             console.log(`📡 Client ${socket.id} requested full analysis`);
 
             // 1. Get fresh crypto news
-            const newsArticles = await newsService.getCryptoNews();
+            const newsArticles = await NewsService.getCryptoNews();
 
             // 2. Send news to frontend right away
             socket.emit('newsUpdate', newsArticles);

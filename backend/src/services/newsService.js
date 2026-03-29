@@ -3,7 +3,7 @@ const axios = require('axios');
 class NewsService {
     constructor(){
         this.apiKey = process.env.NEWSAPI_KEY;
-        this.baseUrl = 'https://newsapi.org/v2';
+        this.baseUrl = 'https://newsapi.org/v2/everything';
     }
 
     async getCryptoNews(){
@@ -13,7 +13,7 @@ class NewsService {
         }
 
         try{
-            const response = await axios.get(`${this.baseUrl}/everything`, {
+            const response = await axios.get(this.baseUrl, {
                 params:{
                     q: 'bitcoin OR ethereum OR crypto OR cryptocurrency',
                     sortBy: 'publishedAt',
