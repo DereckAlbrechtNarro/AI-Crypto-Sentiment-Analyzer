@@ -1,57 +1,60 @@
-const WebSocket = require('ws');
+const axios = require('axios');
 
-class CryptoService{
-    constructor(){
-        this.ws = null;
-        this.clients = new Set();
-        this.currentPrices = {};
+class CryptoService {
+  constructor() {
+    this.currentPrices = {};
+    this.io = null;
+  }
+
+  connect(io) {
+    this.io = io;
+    console.log('📡 Starting CoinGecko price polling...');
+    this.fetchPrices();
+    setInterval(() => this.fetchPrices(), 10000);
+  }
+
+  async fetchPrices() {
+    try {
+      const { data } = await axios.get(
+        'https://api.coingecko.com/api/v3/simple/price',
+        {
+          params: {
+            ids: 'bitcoin,ethereum,solana,binancecoin,ripple',
+            vs_currencies: 'usd',
+            include_24hr_change: 'true',
+          },
+        }
+      );
+
+      const map = {
+        bitcoin:     'BTC',
+        ethereum:    'ETH',
+        solana:      'SOL',
+        binancecoin: 'BNB',
+        ripple:      'XRP',
+      };
+
+      for (const [id, symbol] of Object.entries(map)) {
+        if (!data[id]) continue;
+        const entry = {
+          symbol,
+          price: data[id].usd,
+          change: data[id].usd_24h_change ?? 0,
+          timestamp: Date.now(),
+        };
+        this.currentPrices[symbol] = entry;
+        this.io.emit('cryptoUpdate', entry);
+      }
+
+      console.log('✅ Prices updated from CoinGecko');
+    } catch (err) {
+      console.error('❌ CoinGecko fetch error:', err.message);
     }
+  }
 
-    connect(io){
-        const symbols = ['btcusdt', 'ethusdt', 'solusdt', 'bnbusdt', 'xrpusdt'];
-        const streams = symbols.map(s=> `${s}@ticker`).join('/');
-        const wsUrl = `wss://data.binance.com/ws/${streams}`;;
-
-        console.log(`📡 Connecting to Binance WebSocket: ${wsUrl}`)
-
-        this.ws = new WebSocket(wsUrl);
-
-        this.ws.on('open', ()=>{
-            console.log('✅ Connected to Binance WebSocket - Live crypto prices streaming')
-        });
-
-        this.ws.on('message', (data)=>{
-            try{
-                const ticker = JSON.parse(data);
-                const symbol = ticker.s.toLowerCase();
-                const price = parseFloat(ticker.c)
-
-                this.currentPrices[symbol] = {
-                    symbol: symbol.toUpperCase().replace('USDT', ''),
-                    price: price,
-                    change: parseFloat(ticker.P),
-                    timestamp: Date.now()
-                };
-
-                io.emit('cryptoUpdate', this.currentPrices[symbol]);
-            } catch(error){
-                console.error('❌ Error parsing Binance data:', error);
-            }
-        });
-
-        this.ws.on('error', (err)=>{
-            console.error('❌ Binance WebSocket error:', err.message);
-        });
-
-        this.ws.on('close', ()=>{
-            console.log('🔴 Binance WebSocket closed. Reconnecting in 5s...');
-            setTimeout(()=> this.connect(io),5000);
-        });
-    }
-
-    getCurrentPrices(){
-        return this.currentPrices;
-    }
+  getCurrentPrices() {
+    return this.currentPrices;
+  }
 }
 
-module.exports = new CryptoService;
+module.exports = new CryptoService();
