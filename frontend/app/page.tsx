@@ -41,34 +41,33 @@ export default function Dashboard() {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [priceHistory, setPriceHistory] = useState<Record<string, { time: string; price: number }[]>>({});
 
-useEffect(() => {
-  const newSocket = initSocket();
-  setSocket(newSocket);
+  useEffect(() => {
+    const newSocket = initSocket();
+    setSocket(newSocket);
 
-  newSocket.on('cryptoUpdate', (priceData: CryptoPrice) => {
-    if (!priceData.symbol || priceData.symbol === '') return;
+    newSocket.on('cryptoUpdate', (priceData: CryptoPrice) => {
+      if (!priceData.symbol || priceData.symbol === '') return;
+      setPrices((prev) => ({ ...prev, [priceData.symbol]: priceData }));
 
-    setPrices((prev) => ({ ...prev, [priceData.symbol]: priceData }));
-
-    setPriceHistory((prev) => {
-      const current = prev[priceData.symbol] || [];
-      const newPoint = { time: new Date().toLocaleTimeString(), price: priceData.price };
-      const updated = [...current, newPoint].slice(-20);
-      return { ...prev, [priceData.symbol]: updated };
+      setPriceHistory((prev) => {
+        const current = prev[priceData.symbol] || [];
+        const newPoint = { time: new Date().toLocaleTimeString(), price: priceData.price };
+        const updated = [...current, newPoint].slice(-20);
+        return { ...prev, [priceData.symbol]: updated };
+      });
     });
-  });
 
-  newSocket.on('newsUpdate', (newsData: any[]) => setNews(newsData));
+    newSocket.on('newsUpdate', (newsData: any[]) => setNews(newsData));
 
-  newSocket.on('sentimentUpdate', (sentimentData: SentimentData) => {
-    setSentiment(sentimentData);
-    setIsAnalyzing(false);
-  });
+    newSocket.on('sentimentUpdate', (sentimentData: SentimentData) => {
+      setSentiment(sentimentData);
+      setIsAnalyzing(false);
+    });
 
-  return () => {
-    newSocket.disconnect();
-  };
-}, []);
+    return () => {
+      if (newSocket) newSocket.disconnect();
+    };
+  }, []);
 
   const requestAnalysis = () => {
     if (socket) {
@@ -92,9 +91,7 @@ useEffect(() => {
     }],
   } : null;
 
-  const validPrices = Object.values(prices).filter(
-    (c) => c.symbol && c.symbol !== '' && c.price > 0
-  );
+  const validPrices = Object.values(prices).filter((c) => c.symbol && c.symbol !== '' && c.price > 0);
 
   const getSentimentColor = (sentimentType: string) => {
     if (sentimentType === 'bullish') return 'text-emerald-600';
@@ -103,33 +100,21 @@ useEffect(() => {
   };
 
   return (
-    <div className="min-h-screen p-8" style={{ 
-      background: 'linear-gradient(135deg, #e8f5e9 0%, #d0e7d8 40%, #c8e6d8 70%, #e0f2e9 100%)' 
-    }}>
+    <div className="min-h-screen p-8" style={{ background: 'linear-gradient(135deg, #e8f5e9 0%, #d0e7d8 40%, #c8e6d8 70%, #e0f2e9 100%)' }}>
       <div className="max-w-7xl mx-auto">
-
         {/* Header */}
         <div className="flex justify-between items-center mb-12">
           <div>
             <h1 className="text-5xl font-bold tracking-tight" style={{ color: '#1f4a3b' }}>CryptoPulse AI</h1>
             <p className="mt-2 text-xl" style={{ color: '#2e6b52' }}>Real-time Prices • AI Sentiment Analysis</p>
           </div>
-
           <button
             onClick={requestAnalysis}
             disabled={isAnalyzing}
             className="px-10 py-4 font-semibold text-lg rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl flex items-center gap-3"
-            style={{ 
-              background: 'linear-gradient(135deg, #4caf7a, #66c49a)', 
-              color: '#ffffff',
-              boxShadow: '0 10px 25px rgba(76, 175, 122, 0.3)'
-            }}
+            style={{ background: 'linear-gradient(135deg, #4caf7a, #66c49a)', color: '#ffffff', boxShadow: '0 10px 25px rgba(76, 175, 122, 0.3)' }}
           >
-            {isAnalyzing ? (
-              <>⏳ AI Analyzing Market...</>
-            ) : (
-              <>🔍 Analyze Market Sentiment</>
-            )}
+            {isAnalyzing ? <>⏳ AI Analyzing Market...</> : <>🔍 Analyze Market Sentiment</>}
           </button>
         </div>
 
@@ -142,11 +127,7 @@ useEffect(() => {
                 key={crypto.symbol}
                 onClick={() => setSelectedSymbol(crypto.symbol)}
                 className="p-8 rounded-3xl cursor-pointer transition-all hover:scale-105 hover:shadow-2xl"
-                style={{ 
-                  background: 'rgba(255, 255, 255, 0.85)',
-                  border: '1px solid rgba(200, 229, 200, 0.7)',
-                  backdropFilter: 'blur(16px)'
-                }}
+                style={{ background: 'rgba(255, 255, 255, 0.85)', border: '1px solid rgba(200, 229, 200, 0.7)', backdropFilter: 'blur(16px)' }}
               >
                 <div className="text-sm font-medium" style={{ color: '#2e6b52' }}>{crypto.symbol} / USDT</div>
                 <div className="text-4xl font-mono font-bold mt-4" style={{ color: '#1f4a3b' }}>
@@ -165,56 +146,27 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* AI Sentiment */}
+        {/* AI Sentiment & News sections (same as before) */}
         {sentiment && (
-          <div className="mb-12 p-10 rounded-3xl" style={{ 
-            background: 'rgba(255, 255, 255, 0.85)', 
-            border: '1px solid rgba(200, 229, 200, 0.7)', 
-            backdropFilter: 'blur(16px)' 
-          }}>
+          <div className="mb-12 p-10 rounded-3xl" style={{ background: 'rgba(255, 255, 255, 0.85)', border: '1px solid rgba(200, 229, 200, 0.7)', backdropFilter: 'blur(16px)' }}>
             <h2 className="text-3xl font-semibold mb-6" style={{ color: '#1f4a3b' }}>AI Market Sentiment</h2>
-            <div className={`text-7xl font-bold ${getSentimentColor(sentiment.overallSentiment)}`}>
-              {sentiment.overallSentiment.toUpperCase()}
-            </div>
-            <div className="mt-3 text-lg" style={{ color: '#2e6b52' }}>
-              Confidence: {(sentiment.score * 100).toFixed(0)}% • {sentiment.articlesAnalyzed} articles analyzed
-            </div>
+            <div className={`text-7xl font-bold ${getSentimentColor(sentiment.overallSentiment)}`}>{sentiment.overallSentiment.toUpperCase()}</div>
+            <div className="mt-3 text-lg" style={{ color: '#2e6b52' }}>Confidence: {(sentiment.score * 100).toFixed(0)}% • {sentiment.articlesAnalyzed} articles analyzed</div>
             <div className="mt-10 grid md:grid-cols-2 gap-10">
-              <div>
-                <h3 className="font-semibold mb-4 text-lg" style={{ color: '#1f4a3b' }}>Key Insights</h3>
-                <ul className="space-y-3 text-base" style={{ color: '#2e6b52' }}>
-                  {sentiment.keyInsights.map((insight, i) => <li key={i}>• {insight}</li>)}
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-4 text-lg" style={{ color: '#1f4a3b' }}>Influencing Factors</h3>
-                <ul className="space-y-3 text-base" style={{ color: '#2e6b52' }}>
-                  {sentiment.influencingFactors.map((factor, i) => <li key={i}>• {factor}</li>)}
-                </ul>
-              </div>
+              <div><h3 className="font-semibold mb-4 text-lg" style={{ color: '#1f4a3b' }}>Key Insights</h3><ul className="space-y-3 text-base" style={{ color: '#2e6b52' }}>{sentiment.keyInsights.map((i, idx) => <li key={idx}>• {i}</li>)}</ul></div>
+              <div><h3 className="font-semibold mb-4 text-lg" style={{ color: '#1f4a3b' }}>Influencing Factors</h3><ul className="space-y-3 text-base" style={{ color: '#2e6b52' }}>{sentiment.influencingFactors.map((f, idx) => <li key={idx}>• {f}</li>)}</ul></div>
             </div>
           </div>
         )}
 
-        {/* News Feed */}
         {news.length > 0 && (
           <div>
             <h2 className="text-3xl font-semibold mb-6" style={{ color: '#1f4a3b' }}>Latest Crypto News</h2>
             <div className="space-y-6">
               {news.map((article, index) => (
-                <div
-                  key={index}
-                  className="p-8 rounded-3xl"
-                  style={{ 
-                    background: 'rgba(255, 255, 255, 0.85)', 
-                    border: '1px solid rgba(200, 229, 200, 0.7)', 
-                    backdropFilter: 'blur(16px)' 
-                  }}
-                >
+                <div key={index} className="p-8 rounded-3xl" style={{ background: 'rgba(255, 255, 255, 0.85)', border: '1px solid rgba(200, 229, 200, 0.7)', backdropFilter: 'blur(16px)' }}>
                   <div className="text-sm" style={{ color: '#2e6b52' }}>{article.source} • {new Date(article.publishedAt).toLocaleDateString()}</div>
-                  <a href={article.url} target="_blank" rel="noopener noreferrer" className="block mt-4 text-2xl font-medium hover:text-emerald-700 transition" style={{ color: '#1f4a3b' }}>
-                    {article.title}
-                  </a>
+                  <a href={article.url} target="_blank" rel="noopener noreferrer" className="block mt-4 text-2xl font-medium hover:text-emerald-700 transition" style={{ color: '#1f4a3b' }}>{article.title}</a>
                   <p className="mt-5 text-base leading-relaxed" style={{ color: '#2e6b52' }}>{article.description}</p>
                 </div>
               ))}
@@ -234,7 +186,6 @@ useEffect(() => {
             <div className="h-96">
               <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />
             </div>
-            <p className="text-center text-sm mt-4 text-gray-500">Last 20 price updates • Real-time via Binance</p>
           </div>
         </div>
       )}
