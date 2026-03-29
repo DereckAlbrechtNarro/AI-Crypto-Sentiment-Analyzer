@@ -41,37 +41,34 @@ export default function Dashboard() {
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [priceHistory, setPriceHistory] = useState<Record<string, { time: string; price: number }[]>>({});
 
-  useEffect(() => {
-    const newSocket = initSocket();
-    setSocket(newSocket);
+useEffect(() => {
+  const newSocket = initSocket();
+  setSocket(newSocket);
 
-    newSocket.on('cryptoUpdate', (priceData: CryptoPrice) => {
-      if (!priceData.symbol || priceData.symbol === '') return;
+  newSocket.on('cryptoUpdate', (priceData: CryptoPrice) => {
+    if (!priceData.symbol || priceData.symbol === '') return;
 
-      setPrices((prev) => ({ ...prev, [priceData.symbol]: priceData }));
+    setPrices((prev) => ({ ...prev, [priceData.symbol]: priceData }));
 
-      setPriceHistory((prev) => {
-        const current = prev[priceData.symbol] || [];
-        const newPoint = { time: new Date().toLocaleTimeString(), price: priceData.price };
-        const updated = [...current, newPoint].slice(-20);
-        return { ...prev, [priceData.symbol]: updated };
-      });
+    setPriceHistory((prev) => {
+      const current = prev[priceData.symbol] || [];
+      const newPoint = { time: new Date().toLocaleTimeString(), price: priceData.price };
+      const updated = [...current, newPoint].slice(-20);
+      return { ...prev, [priceData.symbol]: updated };
     });
+  });
 
-    newSocket.on('newsUpdate', (newsData: any[]) => setNews(newsData));
+  newSocket.on('newsUpdate', (newsData: any[]) => setNews(newsData));
 
-    newSocket.on('sentimentUpdate', (sentimentData: SentimentData) => {
-      setSentiment(sentimentData);
-      setIsAnalyzing(false);
-    });
+  newSocket.on('sentimentUpdate', (sentimentData: SentimentData) => {
+    setSentiment(sentimentData);
+    setIsAnalyzing(false);
+  });
 
-    // Proper cleanup function
-    return () => {
-      if (newSocket) {
-        newSocket.disconnect();
-      }
-    };
-  }, []);
+  return () => {
+    newSocket.disconnect();
+  };
+}, []);
 
   const requestAnalysis = () => {
     if (socket) {
