@@ -10,7 +10,7 @@ class CryptoService{
     connect(io){
         const symbols = ['btcusdt', 'ethusdt', 'solusdt', 'bnbusdt', 'xrpusdt'];
         const streams = symbols.map(s=> `${s}@ticker`).join('/');
-        const wsUrl = `wss://stream.binance.com:9443/ws/${streams}`;
+        const wsUrl = `wss://data.binance.com/ws/${streams}`;;
 
         console.log(`📡 Connecting to Binance WebSocket: ${wsUrl}`)
 
