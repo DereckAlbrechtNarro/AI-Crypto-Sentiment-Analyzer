@@ -1,59 +1,73 @@
-const axios = require('axios');
+const WebSocket = require('ws');
 
 class CryptoService {
   constructor() {
+    this.ws = null;
     this.currentPrices = {};
-    this.io = null;
   }
 
   connect(io) {
-    this.io = io;
-    console.log('📡 Starting CoinGecko price polling...');
-    this.fetchPrices();
-    setInterval(() => this.fetchPrices(), 60000);
-  }
+    console.log('📡 Connecting to Kraken WebSocket...');
 
-  async fetchPrices() {
-    try {
-      const { data } = await axios.get(
-        'https://api.coingecko.com/api/v3/simple/price',
-        {
-          params: {
-            ids: 'bitcoin,ethereum,solana,binancecoin,ripple',
-            vs_currencies: 'usd',
-            include_24hr_change: 'true',
-          },
-          headers: {
-            'User-Agent': 'Mozilla/5.0',
-            'Accept': 'application/json',
-          }
-        }
-      );
+    this.ws = new WebSocket('wss://ws.kraken.com');
 
-      const map = {
-        bitcoin: 'BTC',
-        ethereum: 'ETH',
-        solana: 'SOL',
-        binancecoin: 'BNB',
-        ripple: 'XRP',
-      };
+    this.ws.on('open', () => {
+      console.log('✅ Connected to Kraken WebSocket');
+      this.ws.send(JSON.stringify({
+        event: 'subscribe',
+        pair: ['XBT/USD', 'ETH/USD', 'SOL/USD', 'BNB/USD', 'XRP/USD'],
+        subscription: { name: 'ticker' }
+      }));
+    });
 
-      for (const [id, symbol] of Object.entries(map)) {
-        if (!data[id]) continue;
+    this.ws.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data);
+
+        // Skip non-ticker messages
+        if (!Array.isArray(msg) || msg[2] !== 'ticker') return;
+
+        const tickerData = msg[1];
+        const pair = msg[3];
+
+        const symbolMap = {
+          'XBT/USD': 'BTC',
+          'ETH/USD': 'ETH',
+          'SOL/USD': 'SOL',
+          'BNB/USD': 'BNB',
+          'XRP/USD': 'XRP',
+        };
+
+        const symbol = symbolMap[pair];
+        if (!symbol) return;
+
+        const price = parseFloat(tickerData.c[0]);
+        const open = parseFloat(tickerData.o.t[0]);
+        const change = ((price - open) / open) * 100;
+
         const entry = {
           symbol,
-          price: data[id].usd,
-          change: data[id].usd_24h_change ?? 0,
+          price,
+          change,
           timestamp: Date.now(),
         };
-        this.currentPrices[symbol] = entry;
-        this.io.emit('cryptoUpdate', entry);
-      }
 
-      console.log('✅ Prices updated from CoinGecko');
-    } catch (err) {
-      console.error('❌ CoinGecko fetch error:', err.message);
-    }
+        this.currentPrices[symbol] = entry;
+        io.emit('cryptoUpdate', entry);
+
+      } catch (err) {
+        console.error('❌ Kraken parse error:', err.message);
+      }
+    });
+
+    this.ws.on('error', (err) => {
+      console.error('❌ Kraken WebSocket error:', err.message);
+    });
+
+    this.ws.on('close', () => {
+      console.log('🔴 Kraken WebSocket closed. Reconnecting in 5s...');
+      setTimeout(() => this.connect(io), 5000);
+    });
   }
 
   getCurrentPrices() {

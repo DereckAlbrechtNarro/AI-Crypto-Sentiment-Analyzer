@@ -13,7 +13,7 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'http:// THE-FRONT-END-VERCEL.vercel.app'],
+    origin: ['http://localhost:3000', 'https://ai-crypto-sentiment-analyzer.vercel.app'],
     methods: ['GET', 'POST'],
     credentials: true
 }));
@@ -23,22 +23,22 @@ app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'OK',
         message: '🚀 AI Crypto Sentiment Analyzer Backend is healthy!',
-        services: ['Binance WS', 'NewsAPI', 'GeminiAPI'],
+        services: ['Kraken WS', 'NewsAPI', 'GeminiAPI'],
         timeStamp: new Date().toISOString()
     });
 });
 
 app.get('/', (req, res) => {
     res.send(`
-            <h1>👋 Welcome to the AI-Driven Crypto & News Sentiment Analyzer Backend</h1>
-            <p>Socket.io is ready for real-time crypto streams.</p>
-            <p>Check <a href="/health">/health</a> for status.</p>
-        `);
+        <h1>👋 Welcome to the AI-Driven Crypto & News Sentiment Analyzer Backend</h1>
+        <p>Socket.io is ready for real-time crypto streams.</p>
+        <p>Check <a href="/health">/health</a> for status.</p>
+    `);
 });
 
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:3000', 'https://THE-FRONT-END-VERCEL-URL.vercel.app'],
+        origin: ['http://localhost:3000', 'https://ai-crypto-sentiment-analyzer.vercel.app'],
         methods: ['GET', 'POST']
     }
 });
@@ -51,21 +51,14 @@ io.on('connection', (socket) => {
     socket.emit('cryptoUpdate', cryptoService.getCurrentPrices());
 
     socket.on('requestAnalysis', async () => {
-        // Note: Gemini free tier has ~10-15 requests per minute. 
-        // In production we could add simple in-memory rate limiting.
         try {
             console.log(`📡 Client ${socket.id} requested full analysis`);
 
-            // 1. Get fresh crypto news
             const newsArticles = await NewsService.getCryptoNews();
-
-            // 2. Send news to frontend right away
             socket.emit('newsUpdate', newsArticles);
 
-            // 3. Run AI sentiment (Gemini 2.5 Flash is fast & free-tier friendly)
             const sentimentResult = await sentimentService.analyzeNewsSentiment(newsArticles);
 
-            // 4. Broadcast the full AI-powered insight
             socket.emit('sentimentUpdate', {
                 ...sentimentResult,
                 analyzedAt: new Date().toISOString(),
@@ -89,6 +82,6 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`🔥 Server is running on http://localhost:${PORT} 🔥`);
     console.log(`📡 Socket.io ready for real-time crypto & sentiment magic`);
-    console.log(`📡 Live Binance crypto prices streaming`);
+    console.log(`📡 Live Kraken crypto prices streaming`);
     console.log(`📰 NewsAPI + Gemini AI ready for crypto sentiment analysis`);
 });
