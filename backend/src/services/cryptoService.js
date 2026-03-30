@@ -10,7 +10,7 @@ class CryptoService {
     this.io = io;
     console.log('📡 Starting CoinGecko price polling...');
     this.fetchPrices();
-    setInterval(() => this.fetchPrices(), 10000);
+    setInterval(() => this.fetchPrices(), 60000);
   }
 
   async fetchPrices() {
@@ -23,15 +23,19 @@ class CryptoService {
             vs_currencies: 'usd',
             include_24hr_change: 'true',
           },
+          headers: {
+            'User-Agent': 'Mozilla/5.0',
+            'Accept': 'application/json',
+          }
         }
       );
 
       const map = {
-        bitcoin:     'BTC',
-        ethereum:    'ETH',
-        solana:      'SOL',
+        bitcoin: 'BTC',
+        ethereum: 'ETH',
+        solana: 'SOL',
         binancecoin: 'BNB',
-        ripple:      'XRP',
+        ripple: 'XRP',
       };
 
       for (const [id, symbol] of Object.entries(map)) {
