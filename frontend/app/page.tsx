@@ -140,7 +140,7 @@ export default function Dashboard() {
               </div>
             )) : (
               <div className="col-span-full text-center py-20 text-xl" style={{ color: '#2e6b52' }}>
-                Connecting to Binance live prices...
+                Connecting to Kraken live prices...
               </div>
             )}
           </div>
