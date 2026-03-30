@@ -15,7 +15,7 @@ class CryptoService {
       console.log('✅ Connected to Kraken WebSocket');
       this.ws.send(JSON.stringify({
         event: 'subscribe',
-        pair: ['XBT/USD', 'ETH/USD', 'SOL/USD', 'BNB/USD', 'XRP/USD'],
+        pair: ['XBT/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD'],
         subscription: { name: 'ticker' }
       }));
     });
@@ -24,17 +24,19 @@ class CryptoService {
       try {
         const msg = JSON.parse(data);
 
-        // Skip non-ticker messages
-        if (!Array.isArray(msg) || msg[2] !== 'ticker') return;
+        // Only process array messages (ticker data)
+        if (!Array.isArray(msg)) return;
 
         const tickerData = msg[1];
         const pair = msg[3];
+
+        // Make sure tickerData and pair exist and have the right shape
+        if (!tickerData || !pair || !tickerData.c || !tickerData.c[0]) return;
 
         const symbolMap = {
           'XBT/USD': 'BTC',
           'ETH/USD': 'ETH',
           'SOL/USD': 'SOL',
-          'BNB/USD': 'BNB',
           'XRP/USD': 'XRP',
         };
 
@@ -42,8 +44,8 @@ class CryptoService {
         if (!symbol) return;
 
         const price = parseFloat(tickerData.c[0]);
-        const open = parseFloat(tickerData.o.t[0]);
-        const change = ((price - open) / open) * 100;
+        const open = parseFloat(tickerData.o?.t?.[0] || tickerData.o?.[0] || price);
+        const change = open !== 0 ? ((price - open) / open) * 100 : 0;
 
         const entry = {
           symbol,
@@ -56,7 +58,7 @@ class CryptoService {
         io.emit('cryptoUpdate', entry);
 
       } catch (err) {
-        console.error('❌ Kraken parse error:', err.message);
+        // silently ignore malformed messages
       }
     });
 
